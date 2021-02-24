@@ -1,135 +1,201 @@
-def get_matrix(name=''):
-    print(f"Enter size of {name} matrix:")
-    n, m = map(int, input().split())
-    print(f"Enter {name} matrix:")
-    return [[float(num) for num in input().split()] for _ in range(n)]
+class Matrix:
+    def __init__(self, rows=None, cols=None, array=None):
+        if rows and cols:
+            self.rows = rows
+            self.cols = cols
+        else:
+            self.inputSize()
+        if array:
+            self.array = array
+        else:
+            self.array = []
+            self.inputArray()
 
+    def __str__(self):
+        string = ''
+        for row in self.array:
+            for element in row:
+                string += str(element) + ' '
+            string += '\n'
+        return string
 
-def matrix_by_number_multiplication(A, c):
-    return [[A[n][m] * float(c) for m in range(len(A[n]))] for n in range(len(A))]
+    def __add__(self, other):
+        if self.sameSize(other):
+            result = self.array[:]
+            for i in range(self.rows):
+                for j in range(self.cols):
+                    result[i][j] += other.array[i][j]
+            return Matrix(self.rows, self.cols, result)
+        else:
+            return "The operation cannot be performed."
 
+    def __mul__(self, other):
+        if isinstance(other, (int, float)):
+            result = self.array[:]
+            for i in range(self.rows):
+                for j in range(self.cols):
+                    result[i][j] *= other
+            return Matrix(self.rows, self.cols, result)
+        elif isinstance(other, Matrix) and self.cols == other.rows:
+            result = []
+            for i in range(self.rows):
+                result.append([])
+                for j in range(other.cols):
+                    row = self.getRow(i)
+                    col = other.getCol(j)
+                    result[i].append(sum([row[i] * col[i] for i in range(len(row))]))
+            return Matrix(self.rows, other.cols, result)
+        else:
+            return "The operation cannot be performed."
 
-def matrix_addition(A, B):
-    C = []
-    if len(A) != len(B):
-        print("ERROR")
-    else:
-        for n in range(len(A)):
-            if len(A[n]) != len(B[n]):
-                print("ERROR")
-                break
+    def __truediv__(self, other):
+        if isinstance(other, (int, float)):
+            result = self.array[:]
+            for i in range(self.rows):
+                for j in range(self.cols):
+                    if result[i][j]:
+                        result[i][j] /= other
+            return Matrix(self.rows, self.cols, result)
+
+    def inputArray(self):
+        for i in range(self.rows):
+            row = input().split(maxsplit=self.cols)
+            if hasFloat(row):
+                self.array.append(list(map(float, row)))
             else:
-                tmp = []
-                for m in range(len(A[n])):
-                    tmp.append(str(float(A[n][m]) + float(B[n][m])))
-                C.append(tmp)
-    return C
+                self.array.append(list(map(int, row)))
+
+    def inputSize(self):
+        self.rows, self.cols = map(int, input().split())
+
+    def sameSize(self, other):
+        if self.cols == other.cols and self.rows == other.rows:
+            return True
+        else:
+            return False
+
+    def getRow(self, index):
+        return self.array[index]
+
+    def getCol(self, index):
+        return [elem[index] for elem in self.array]
+
+    def transpose(self, line='Main diagonal'):
+        if line == 'Main diagonal':
+            result = [self.getCol(i) for i in range(self.cols)]
+            return Matrix(self.cols, self.rows, result)
+        elif line == 'Side diagonal':
+            result = [reversed(self.getCol(i)) for i in reversed(range(self.cols))]
+            return Matrix(self.cols, self.rows, result)
+        elif line == 'Vertical line':
+            result = [reversed(self.getRow(i)) for i in range(self.rows)]
+            return Matrix(self.rows, self.cols, result)
+        elif line == 'Horizontal line':
+            result = [self.getRow(i) for i in reversed(range(self.rows))]
+            return Matrix(self.rows, self.cols, result)
+
+    def getDeterminant(self):
+        if self.cols == self.rows:
+            if self.cols == 1:
+                return self.array[0][0]
+            else:
+                determinant = [self.array[0][i] * self.getMinor(0, i).getDeterminant() * coFactor(0, i)
+                            for i in range(self.cols)]
+                return sum(determinant)
+        else:
+            return "Can't calculate determinant for non-square matrix"
+
+    def getMinor(self, row, col):
+        result = []
+        for i in range(self.rows):
+            if i != row:
+                result.append([self.array[i][j] for j in range(self.cols) if j != col])
+        return Matrix(self.rows - 1, self.cols - 1, result)
+
+    def coFactors(self):
+        result = [[coFactor(i, j) * self.getMinor(i, j).getDeterminant() for j in range(self.cols)]
+                  for i in range(self.rows)]
+        return Matrix(self.rows, self.cols, result)
+
+    def inverted(self):
+        determinant = self.getDeterminant()
+        coFactors = self.coFactors().transpose()
+        return coFactors / determinant
 
 
-def matrix_by_matix_multiplication(A, B):
-    C = []
-    for i in range(len(A)):
-        C.append([])
-        for j in range(len(B[0])):
-            C[i].append(0)
-
-    if len(B) != len(A[0]):
-        print("ERROR")
-    else:
-        # parcours des lignes de A
-        for i in range(len(A)):
-            # parcours de colonnes de B
-            for j in range(len(B[0])):
-                # parcours des elements (lignes) de B
-                for k in range(len(B)):
-                    C[i][j] += float(A[i][k]) * float(B[k][j])
-    return C
+def coFactor(i, j):
+    return (-1) ** (i + j)
 
 
-def matrix_transposition():
-    print("1. Main diagonal")
-    print("2. Side diagonal")
-    print("3. Vertical line")
-    print("4. Horizontal line")
-    trans_choice = input()
-    A = get_matrix()
-    B = []
-    for i in range(len(A)):
-        B.append([])
-        for j in range(len(A[0])):
-            B[i].append(0)
-
-    if trans_choice == '1':
-        for m in range(len(A)):
-            for n in range(len(A[m])):
-                B[n][m] = A[m][n]
-        A = B
-    elif trans_choice == '2':
-        for m in range(len(A)):
-            for n in range(len(A[m])):
-                B[len(A[m]) - n - 1][len(A[m]) - m - 1] = A[m][n]
-        A = B
-    elif trans_choice == '3':
-        [m.reverse() for m in A]
-    elif trans_choice == '4':
-        A.reverse()
-    return A
+def hasFloat(iterable):
+    if sum(['.' in element for element in iterable]) > 0:
+        return True
+    return False
 
 
-def get_matrix_minor(m, i, j):
-    return [row[:j] + row[j + 1:] for row in (m[:i] + m[i + 1:])]
-
-
-def matrix_determinant(matrix):
-    if len(matrix) == 1:
-        return matrix[0][0]
-
-    if len(matrix) == 2:
-        return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
-
-    determinant = 0
-    for c in range(len(matrix)):
-        determinant += ((-1) ** c) * matrix[0][c] * matrix_determinant(get_matrix_minor(matrix, 0, c))
-    return determinant
+def showMenu(hashtable):
+    for key, value in hashtable.items():
+        print(f"{key}. {value}")
 
 
 while True:
-    print()
-    print("1. Add matrices")
-    print("2. Multiply matrix by a constant")
-    print("3. Multiply matrices")
-    print("4. Transpose matrix")
-    print("5. Calculate a determinant")
-    print("6. Inverse matrix")
-    print("0. Exit")
-    choice = input()
-    C = None
-
-    if choice == '0':
+    menu = {1: 'Add matrices',
+            2: 'Multiply matrix by a constant',
+            3: 'Multiply matrices',
+            4: 'Transpose matrix',
+            5: 'Calculate a determinant',
+            6: 'Inverse matrix',
+            0: 'Exit'}
+    showMenu(menu)
+    choice = int(input("Your choice: "))
+    if choice == 1:
+        rowsA, colsA = map(int, input("Enter size of first matrix: ").split())
+        print("Enter first matrix:")
+        A = Matrix(rowsA, colsA)
+        rowsB, colsB = map(int, input("Enter size of second matrix: ").split())
+        print("Enter second matrix:")
+        B = Matrix(rowsB, colsB)
+        C = A + B
+    elif choice == 2:
+        rowsA, colsA = map(int, input("Enter size of matrix: ").split())
+        print("Enter matrix:")
+        A = Matrix(rowsA, colsA)
+        B = (input("Enter constant: "))
+        if B.isdigit():
+            B = int(B)
+        else:
+            B = float(B)
+        C = A * B
+    elif choice == 3:
+        rowsA, colsA = map(int, input("Enter size of first matrix: ").split())
+        print("Enter first matrix:")
+        A = Matrix(rowsA, colsA)
+        rowsB, colsB = map(int, input("Enter size of second matrix: ").split())
+        print("Enter second matrix:")
+        B = Matrix(rowsB, colsB)
+        C = A * B
+    elif choice == 4:
+        menuTranspose = {1: 'Main diagonal',
+                         2: 'Side diagonal',
+                         3: 'Vertical line',
+                         4: 'Horizontal line'}
+        print()
+        showMenu(menuTranspose)
+        choice = menuTranspose[int(input("Your choice: "))]
+        rowsA, colsA = map(int, input("Enter size of matrix: ").split())
+        print("Enter matrix:")
+        A = Matrix(rowsA, colsA)
+        C = A.transpose(choice)
+    elif choice == 5:
+        rowsA, colsA = map(int, input("Enter size of matrix: ").split())
+        print("Enter matrix:")
+        A = Matrix(rowsA, colsA)
+        C = A.getDeterminant()
+    elif choice == 6:
+        rowsA, colsA = map(int, input("Enter size of matrix: ").split())
+        print("Enter matrix:")
+        A = Matrix(rowsA, colsA)
+        C = A.inverted()
+    elif choice == 0:
         break
-    elif choice == '1':
-        A = get_matrix('first')
-        B = get_matrix('second')
-        C = matrix_addition(A, B)
-    elif choice == '2':
-        A = get_matrix('first')
-        c = input('Enter constant: ')
-        C = matrix_by_number_multiplication(A, c)
-    elif choice == '3':
-        A = get_matrix('first')
-        B = get_matrix('second')
-        C = matrix_by_matix_multiplication(A, B)
-    elif choice == '4':
-        C = matrix_transposition()
-    elif choice == '5':
-        A = get_matrix()
-        C = matrix_determinant(A)
-        print("The result is:")
-        print(C)
-        C = None
-    elif choice == '6':
-        pass
-
-    if C is not None:
-        print("The result is:")
-        [print(*line) for line in C]
+    print(f"The result is:\n{C}")
